@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego del Dinosaurio</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #333;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw; /* Ancho máximo disponible */
+            height: 50vh; /* Altura del rectángulo del juego */
+            overflow: hidden;
+            background-color: #444;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #dino {
+            position: absolute;
+            bottom: 30px;
+            left: 50px;
+            width: 30px;
+            height: 60px;
+            background-color: #00825a;
+        }
+
+        .obstacle {
+            position: absolute;
+            bottom: 30px;
+            width: 30px;
+            height: 30px;
+            background-color: #b81414;
+        }
+
+        .largeObstacle {
+            width: 30px;
+            height: 60px;
+        }
+
+        .wideObstacle {
+            width: 60px; /* Doble de ancho */
+            height: 30px;
+        }
+
+        #ground {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            background-color: #555;
+        }
+
+        #gameOverPopup {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #222;
+            padding: 20px;
+            border: 2px solid #444;
+            border-radius: 10px;
+            text-align: center;
+            color: #fff;
+        }
+
+        #restartButton, #jumpButton {
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #6b8e23; /* Color verde grisáceo */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #fff;
+        }
+
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            font-size: 20px;
+        }
+
+        #jumpButton {
+            margin-top: 20px;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="dino"></div>
+        <div id="ground"></div>
+        <div id="score">Puntos: 0</div>
+        <div id="gameOverPopup">
+            <h2>Game Over</h2>
+            <p id="finalScore">Puntos: 0</p>
+            <button id="restartButton" onclick="restartGame()">Reiniciar</button>
+        </div>
+    </div>
+    <button id="jumpButton" onclick="jump()">&#8593;</button> <!-- Flecha hacia arriba -->
+
+    <script>
+        document.addEventListener('keydown', jump);
+
+        let dino = document.getElementById('dino');
+        let gameOverPopup = document.getElementById('gameOverPopup');
+        let scoreDisplay = document.getElementById('score');
+        let finalScore = document.getElementById('finalScore');
+        let gameContainer = document.getElementById('gameContainer');
+        let score = 0;
+        let isJumping = false;
+        let gravity = 0.9;
+        let gameSpeed = 5;
+        let gameInterval;
+        let scoreInterval;
+        let obstacleIntervals = [];
+        let obstacles = [];
+
+        function jump() {
+            if (isJumping) return;
+            isJumping = true;
+            let jumpHeight = 150;
+            let currentBottom = parseInt(window.getComputedStyle(dino).getPropertyValue('bottom'));
+            let maxBottom = currentBottom + jumpHeight;
+
+            let upInterval = setInterval(() => {
+                if (currentBottom >= maxBottom) {
+                    clearInterval(upInterval);
+                    let downInterval = setInterval(() => {
+                        if (currentBottom <= 30) {
+                            clearInterval(downInterval);
+                            isJumping = false;
+                        }
+                        currentBottom -= 10;
+                        dino.style.bottom = currentBottom + 'px';
+                    }, 20);
+                }
+                currentBottom += 10;
+                dino.style.bottom = currentBottom + 'px';
+            }, 20);
+        }
+
+        function createObstacle() {
+            let obstacle = document.createElement('div');
+            obstacle.classList.add('obstacle');
+            let randomType = Math.random();
+            if (randomType > 0.66) {
+                obstacle.classList.add('largeObstacle');
+            } else if (randomType > 0.33) {
+                obstacle.classList.add('wideObstacle');
+            }
+            obstacle.style.left = '100vw';
+            gameContainer.appendChild(obstacle);
+            obstacles.push(obstacle);
+
+            let randomTime = Math.random() * 2000 + 1000; // 1 a 3 segundos
+            obstacleIntervals.push(setTimeout(createObstacle, randomTime));
+        }
+
+        function moveObstacles() {
+            obstacles.forEach((obstacle, index) => {
+                let obstacleLeft = parseInt(window.getComputedStyle(obstacle).getPropertyValue('left'));
+                if (obstacleLeft <= -parseInt(window.getComputedStyle(obstacle).getPropertyValue('width'))) {
+                    gameContainer.removeChild(obstacle);
+                    obstacles.splice(index, 1);
+                } else {
+                    obstacle.style.left = obstacleLeft - gameSpeed + 'px';
+                }
+            });
+        }
+
+        function checkCollision() {
+            let dinoBottom = parseInt(window.getComputedStyle(dino).getPropertyValue('bottom'));
+
+            obstacles.forEach(obstacle => {
+                let obstacleLeft = parseInt(window.getComputedStyle(obstacle).getPropertyValue('left'));
+                let obstacleWidth = parseInt(window.getComputedStyle(obstacle).getPropertyValue('width'));
+                let obstacleHeight = parseInt(window.getComputedStyle(obstacle).getPropertyValue('height'));
+
+                if (obstacleLeft < 80 && obstacleLeft + obstacleWidth > 50 && dinoBottom <= obstacleHeight) {
+                    endGame();
+                }
+            });
+        }
+
+        function updateScore() {
+            score++;
+            scoreDisplay.innerText = `Puntos: ${score}`;
+        }
+
+        function gameLoop() {
+            moveObstacles();
+            checkCollision();
+        }
+
+        function startGame() {
+            score = 0;
+            scoreDisplay.innerText = `Puntos: ${score}`;
+            obstacles.forEach(obstacle => gameContainer.removeChild(obstacle));
+            obstacles = [];
+            gameOverPopup.style.display = 'none';
+            gameInterval = setInterval(gameLoop, 20);
+            scoreInterval = setInterval(updateScore, 1500);
+            obstacleIntervals.forEach(interval => clearTimeout(interval));
+            obstacleIntervals = [];
+            setTimeout(createObstacle, Math.random() * 2000 + 1000); // Iniciar con un obstáculo en 1 a 3 segundos
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            clearInterval(scoreInterval);
+            obstacleIntervals.forEach(interval => clearTimeout(interval));
+            finalScore.innerText = `Puntos: ${score}`;
+            gameOverPopup.style.display = 'block';
+        }
+
+        function restartGame() {
+            startGame();
+        }
+
+        startGame();
+    </script>
+</body>
+</html>
