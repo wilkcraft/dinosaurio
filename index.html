@@ -57,10 +57,16 @@
             height: 30px;
         }
 
-        .halfLargeObstacle {
+        .upObstacle {
             width: 30px;
-            height: 30px;
-            bottom: 60px; /* Positioned 30px above the ground */
+            height: 90px;
+            bottom: 60px;
+        }
+
+        .upWideObstacle {
+            width: 60px;
+            height: 90px;
+            bottom: 60px;
         }
 
         #ground {
@@ -84,6 +90,7 @@
             border-radius: 10px;
             text-align: center;
             color: #fff;
+            z-index: 1000; /* Añadido z-index */
         }
 
         #restartButton, #jumpButton, #resizeButton {
@@ -179,12 +186,14 @@
             let obstacle = document.createElement('div');
             obstacle.classList.add('obstacle');
             let randomType = Math.random();
-            if (randomType > 0.75) {
+            if (randomType > 0.8) {
                 obstacle.classList.add('largeObstacle');
-            } else if (randomType > 0.5) {
+            } else if (randomType > 0.6) {
                 obstacle.classList.add('wideObstacle');
-            } else if (randomType > 0.25) {
-                obstacle.classList.add('halfLargeObstacle');
+            } else if (randomType > 0.4) {
+                obstacle.classList.add('upObstacle');
+            } else {
+                obstacle.classList.add('upWideObstacle');
             }
             obstacle.style.left = '100vw';
             gameContainer.appendChild(obstacle);
@@ -215,7 +224,7 @@
                     rectPersonaje.right > rectObstaculo.left &&
                     rectPersonaje.top < rectObstaculo.bottom &&
                     rectPersonaje.bottom > rectObstaculo.top &&
-                    !(obstaculo.classList.contains('halfLargeObstacle') && isDinoResized && rectPersonaje.bottom <= rectObstaculo.top)
+                    !(obstaculo.classList.contains('upObstacle') && isDinoResized && rectPersonaje.bottom <= rectObstaculo.top)
                 ) {
                     endGame();
                 }
